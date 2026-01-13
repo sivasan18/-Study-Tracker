@@ -63,6 +63,13 @@ const syllabusData = {
                     { "name": "Geometry", "classes": 23 },
                     { "name": "Simplification", "classes": 5 }
                 ]
+            },
+            {
+                "name": "Aptitude Book",
+                "topics": [
+                    { "name": "Foundation Book", "classes": 22 },
+                    { "name": "Advanced Book", "classes": 12 }
+                ]
             }
         ]
     },
@@ -109,6 +116,12 @@ const syllabusData = {
                     { "name": "How Do Organisms Reproduce", "classes": 13 },
                     { "name": "Heredity & Evolution", "classes": 1 },
                     { "name": "Nutrition & Diseases", "classes": 1 }
+                ]
+            },
+            {
+                "name": "YouTube Science",
+                "topics": [
+                    { "name": "YouTube Science Classes", "classes": 52 }
                 ]
             }
         ]

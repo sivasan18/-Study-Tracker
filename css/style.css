@@ -309,6 +309,10 @@ h3,
     box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.5);
 }
 
+.topic-card.full-width {
+    grid-column: 1 / -1;
+}
+
 .topic-card.last-studied {
     border-color: var(--accent-color);
     box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
@@ -406,10 +410,31 @@ h3,
 }
 
 .topic-card.expanded .classes-list {
-    max-height: 2000px;
-    /* Large enough to fit many classes */
+    max-height: 5000px;
     padding: 0.5rem 1.25rem 1.25rem 1.25rem;
     transition: max-height 0.8s cubic-bezier(1, 0, 1, 0);
+}
+
+.classes-list.grid-layout {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(20, auto);
+    grid-auto-flow: column;
+    gap: 0.75rem 1.5rem;
+}
+
+@media (max-width: 1200px) {
+    .classes-list.grid-layout {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(26, auto);
+    }
+}
+
+@media (max-width: 768px) {
+    .classes-list.grid-layout {
+        display: flex;
+        flex-direction: column;
+    }
 }
 
 /* Class Item (Checkbox) */

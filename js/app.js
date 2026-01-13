@@ -230,8 +230,10 @@ class StudyTracker {
             this.metadata.lastStudied.subject === subject &&
             this.metadata.lastStudied.topic === topic.name;
 
+        const isYouTubeScience = topic.name === "YouTube Science Classes";
+
         const card = document.createElement('div');
-        card.className = `topic-card ${isTopicCompleted ? 'completed' : ''} ${isLastStudied ? 'last-studied' : ''}`;
+        card.className = `topic-card ${isTopicCompleted ? 'completed' : ''} ${isLastStudied ? 'last-studied' : ''} ${isYouTubeScience ? 'full-width' : ''}`;
         card.dataset.topic = topic.name;
 
         card.innerHTML = `
@@ -247,7 +249,7 @@ class StudyTracker {
                     <span class="expand-icon">▼</span>
                 </div>
             </div>
-            <div class="classes-list">
+            <div class="classes-list ${isYouTubeScience ? 'grid-layout' : ''}">
                 ${Array.from({ length: topic.classes }, (_, i) => {
             const classIdx = i + 1;
             const completionDate = completedData[classIdx];
