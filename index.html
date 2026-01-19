@@ -14,6 +14,61 @@
 </head>
 
 <body>
+    <!-- Main Site Header -->
+    <header class="site-header">
+        <div class="header-branding">
+            <h1 class="site-title">STUDY TRACKER</h1>
+            <p class="site-subtitle">Personal Learning Progress</p>
+        </div>
+        <div class="header-controls">
+            <!-- Initially hidden unlock button -->
+            <button id="unlock-btn" class="control-btn unlock-btn">
+                <span class="icon">🔐</span> Unlock
+            </button>
+            <!-- Hidden until unlocked -->
+            <div id="admin-controls" class="admin-controls hidden">
+                <span class="edit-mode-label" id="edit-mode-label">⚡ ADMIN EDIT MODE – LIVE</span>
+                <button id="edit-btn" class="control-btn edit-btn">
+                    <span class="icon">✏️</span> Edit
+                </button>
+                <button id="reset-btn" class="control-btn reset-btn">
+                    <span class="icon">🗑️</span> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Password Modal -->
+    <div id="password-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="modal-title">🔒 Password Required</h3>
+            <p class="modal-description" id="modal-description">Enter password to unlock admin controls</p>
+            <input type="password" id="password-input" class="password-input" placeholder="Enter password..."
+                autocomplete="off">
+            <p class="error-message hidden" id="password-error">Incorrect password. Please try again.</p>
+            <div class="modal-actions">
+                <button id="cancel-btn" class="modal-btn cancel-btn">Cancel</button>
+                <button id="confirm-btn" class="modal-btn confirm-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Confirmation Modal -->
+    <div id="reset-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="modal-title">⚠️ Confirm Reset</h3>
+            <p class="modal-description">This will clear ALL progress. Continue?</p>
+            <p class="warning-text">This action cannot be undone!</p>
+            <div class="modal-actions">
+                <button id="reset-cancel-btn" class="modal-btn cancel-btn">Cancel</button>
+                <button id="reset-confirm-btn" class="modal-btn danger-btn">Reset All</button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Sidebar / Navigation -->
         <aside class="sidebar">

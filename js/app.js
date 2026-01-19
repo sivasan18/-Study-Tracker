@@ -4,6 +4,7 @@ class StudyTracker {
     constructor() {
         this.currentSubject = "Reasoning";
         this.currentSubdivision = null;
+        this.isEditMode = false;
         // storage structure: { subjectName: { topicName: { classIndex: dateStr } } }
         this.storageData = JSON.parse(localStorage.getItem('study_tracker_v2')) || {};
         this.metadata = JSON.parse(localStorage.getItem('study_tracker_meta')) || {
@@ -23,6 +24,7 @@ class StudyTracker {
         this.navButtons = document.querySelectorAll('.nav-btn');
         this.dailyMotivation = document.getElementById('daily-motivation');
         this.quickJumpBtn = document.getElementById('quick-jump-btn');
+        this.toastContainer = document.getElementById('toast-container');
 
         this.init();
     }
@@ -44,11 +46,32 @@ class StudyTracker {
             });
         });
 
-        // Event delegation for checkboxes
-        this.topicsContainer.addEventListener('change', (e) => {
-            if (e.target.type === 'checkbox') {
-                const { subject, subdivision, topic, classIndex } = e.target.dataset;
-                this.toggleClass(subject, subdivision || null, topic, parseInt(classIndex), e.target.checked);
+        // Event delegation for class items
+        this.topicsContainer.addEventListener('click', (e) => {
+            const classItem = e.target.closest('.class-item');
+            if (classItem) {
+                const checkbox = classItem.querySelector('input[type="checkbox"]');
+                if (!checkbox) return;
+
+                const { subject, subdivision, topic, classIndex } = checkbox.dataset;
+                const idx = parseInt(classIndex);
+                const isCompleted = !!(this.storageData[subject] && this.storageData[subject][topic] && this.storageData[subject][topic][idx]);
+
+                // Normal Mode Restriction: Cannot undo/uncheck completed items
+                if (isCompleted && !this.isEditMode) {
+                    this.showToast("Completed classes are locked. Unlock Admin to edit.", "info");
+                    return;
+                }
+
+                // Manual Toggle Logic
+                const newState = !isCompleted;
+
+                // Prevent default if we clicked the checkbox directly to handle it manually
+                if (e.target.type === 'checkbox') {
+                    e.preventDefault();
+                }
+
+                this.toggleClass(subject, subdivision || null, topic, idx, newState, checkbox);
             }
         });
 
@@ -73,7 +96,7 @@ class StudyTracker {
         this.render();
     }
 
-    toggleClass(subject, subdivision, topicTitle, classIdx, isChecked) {
+    toggleClass(subject, subdivision, topicTitle, classIdx, isChecked, checkboxEl) {
         if (!this.storageData[subject]) this.storageData[subject] = {};
         if (!this.storageData[subject][topicTitle]) this.storageData[subject][topicTitle] = {};
 
@@ -85,24 +108,97 @@ class StudyTracker {
             const dateStr = `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
             this.storageData[subject][topicTitle][classIdx] = dateStr;
 
-            // Phase 2: Update last studied and daily count
+            // Updated last studied and daily count
             this.metadata.lastStudied = { subject, subdivision, topic: topicTitle };
             this.metadata.dailyStats[today]++;
+            this.showToast("Class marked as completed! ✨", "success");
+        } else {
+            delete this.storageData[subject][topicTitle][classIdx];
+            if (this.metadata.dailyStats[today] > 0) this.metadata.dailyStats[today]--;
+            this.showToast("Class reverted to pending.", "info");
+        }
 
-            // Phase 2: Auto-collapse behavior
+        this.saveData();
+
+        // Granular UI Update instead of this.render()
+        this.updateItemUI(checkboxEl, isChecked, topicTitle, subject);
+        this.updateSubjectProgress();
+        this.updateOverallProgress();
+        this.updateDailyMotivation();
+
+        // Auto-collapse behavior only in normal mode
+        if (isChecked && !this.isEditMode) {
             const card = document.querySelector(`.topic-card[data-topic="${topicTitle}"]`);
             if (card) {
                 setTimeout(() => card.classList.remove('expanded'), 300);
             }
-        } else {
-            delete this.storageData[subject][topicTitle][classIdx];
-            if (this.metadata.dailyStats[today] > 0) this.metadata.dailyStats[today]--;
+        }
+    }
+
+    updateItemUI(checkboxEl, isChecked, topicTitle, subjectName) {
+        const itemWrapper = checkboxEl.closest('.class-item');
+        const topicCard = checkboxEl.closest('.topic-card');
+
+        // 1. Update the individual item
+        if (itemWrapper) {
+            itemWrapper.classList.toggle('completed', isChecked);
+
+            // Force checkbox state (very important for manual toggles)
+            const checkbox = itemWrapper.querySelector('input[type="checkbox"]');
+            if (checkbox) checkbox.checked = isChecked;
+
+            // Remove old date if exists, add new one if checked
+            const existingDate = itemWrapper.querySelector('.completion-date');
+            if (existingDate) existingDate.remove();
+
+            if (isChecked) {
+                const dateStr = this.storageData[subjectName][topicTitle][checkboxEl.dataset.classIndex];
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'completion-date';
+                dateSpan.textContent = `Completed on ${dateStr}`;
+                itemWrapper.appendChild(dateSpan);
+            }
         }
 
-        this.saveData();
-        this.render(); // Re-render to update UI and progress
-        this.updateOverallProgress();
-        this.updateDailyMotivation();
+        // 2. Update parent card status and badge
+        if (topicCard) {
+            const completedData = this.storageData[subjectName][topicTitle] || {};
+            const completedCount = Object.keys(completedData).length;
+            const topicData = this.findTopicData(subjectName, topicTitle);
+            const totalClasses = topicData ? topicData.classes : 0;
+
+            const isFullyCompleted = completedCount === totalClasses;
+            topicCard.classList.toggle('completed', isFullyCompleted);
+
+            const badge = topicCard.querySelector('.topic-status-badge');
+            if (badge) {
+                badge.textContent = `${completedCount}/${totalClasses} DONE`;
+            }
+        }
+    }
+
+    findTopicData(subjectName, topicTitle) {
+        const subject = STUDY_DATA[subjectName];
+        if (!subject) return null;
+
+        if (subject.subdivisions) {
+            for (const sub of subject.subdivisions) {
+                const topic = sub.topics.find(t => t.name === topicTitle);
+                if (topic) return topic;
+            }
+        } else if (subject.topics) {
+            return subject.topics.find(t => t.name === topicTitle);
+        }
+        return null;
+    }
+
+    showToast(message, type = "info") {
+        if (!this.toastContainer) return;
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        this.toastContainer.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
     }
 
     saveData() {
@@ -113,11 +209,12 @@ class StudyTracker {
     updateDailyMotivation() {
         const today = new Date().toISOString().split('T')[0];
         const count = this.metadata.dailyStats[today] || 0;
-        this.dailyMotivation.textContent = `Today completed: ${count} classes`;
+        if (this.dailyMotivation) {
+            this.dailyMotivation.textContent = `Today completed: ${count} classes`;
+        }
     }
 
     handleQuickJump() {
-        // Look for the next incomplete class globally
         let target = this.findNextIncomplete();
 
         if (target) {
@@ -125,13 +222,12 @@ class StudyTracker {
             this.currentSubdivision = target.subdivision;
             this.render();
 
-            // Wait for render, then scroll to the topic and expand it
             setTimeout(() => {
                 const card = document.querySelector(`.topic-card[data-topic="${target.topic}"]`);
                 if (card) {
                     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     card.classList.add('expanded');
-                    card.classList.add('last-studied'); // Temporary visual cue
+                    card.classList.add('last-studied');
                     setTimeout(() => card.classList.remove('last-studied'), 2000);
                 }
             }, 100);
@@ -172,14 +268,12 @@ class StudyTracker {
 
         let topicsToShow = [];
         if (subjectData.subdivisions) {
-            // If no subdivision selected, pick the first one
             if (!this.currentSubdivision) {
                 this.currentSubdivision = subjectData.subdivisions[0].name;
             }
             const activeSub = subjectData.subdivisions.find(s => s.name === this.currentSubdivision);
             topicsToShow = activeSub ? activeSub.topics : [];
 
-            // Update subdivision nav buttons active state
             const subBtns = this.subdivisionNav.querySelectorAll('.sub-btn');
             subBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.name === this.currentSubdivision));
         } else {
@@ -200,7 +294,6 @@ class StudyTracker {
                 </button>
             `).join('');
 
-            // Add click events to sub-buttons
             this.subdivisionNav.querySelectorAll('.sub-btn').forEach(btn => {
                 btn.addEventListener('click', () => this.switchSubdivision(btn.dataset.name));
             });
@@ -225,7 +318,6 @@ class StudyTracker {
         const completedCount = Object.keys(completedData).length;
         const isTopicCompleted = completedCount === topic.classes;
 
-        // Phase 2: Check if this was the last studied topic
         const isLastStudied = this.metadata.lastStudied &&
             this.metadata.lastStudied.subject === subject &&
             this.metadata.lastStudied.topic === topic.name;
@@ -302,9 +394,9 @@ class StudyTracker {
 
         const percentage = totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0;
 
-        this.subjectProgressText.textContent = `${completedTopics}/${totalTopics} Topics Completed`;
-        this.subjectPercentageText.textContent = `${percentage}%`;
-        this.subjectCircleFill.setAttribute('stroke-dasharray', `${percentage}, 100`);
+        if (this.subjectProgressText) this.subjectProgressText.textContent = `${completedTopics}/${totalTopics} Topics Completed`;
+        if (this.subjectPercentageText) this.subjectPercentageText.textContent = `${percentage}%`;
+        if (this.subjectCircleFill) this.subjectCircleFill.setAttribute('stroke-dasharray', `${percentage}, 100`);
     }
 
     updateOverallProgress() {
@@ -328,12 +420,123 @@ class StudyTracker {
         });
 
         const percentage = totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0;
-        this.overallPercentageText.textContent = `${percentage}%`;
-        this.overallProgressBar.style.width = `${percentage}%`;
+        if (this.overallPercentageText) this.overallPercentageText.textContent = `${percentage}%`;
+        if (this.overallProgressBar) this.overallProgressBar.style.width = `${percentage}%`;
     }
 }
 
-// Start the app when DOM is loaded
+class AdminController {
+    constructor(trackerInstance) {
+        this.tracker = trackerInstance;
+        this.password = 'admin123';
+        this.isUnlocked = false;
+        this.isEditMode = false;
+        this.pendingAction = null;
+
+        this.unlockBtn = document.getElementById('unlock-btn');
+        this.adminControls = document.getElementById('admin-controls');
+        this.editBtn = document.getElementById('edit-btn');
+        this.resetBtn = document.getElementById('reset-btn');
+        this.editModeLabel = document.getElementById('edit-mode-label');
+
+        this.passwordModal = document.getElementById('password-modal');
+        this.passwordInput = document.getElementById('password-input');
+        this.passwordError = document.getElementById('password-error');
+        this.modalDescription = document.getElementById('modal-description');
+        this.cancelBtn = document.getElementById('cancel-btn');
+        this.confirmBtn = document.getElementById('confirm-btn');
+
+        this.resetModal = document.getElementById('reset-modal');
+        this.resetCancelBtn = document.getElementById('reset-cancel-btn');
+        this.resetConfirmBtn = document.getElementById('reset-confirm-btn');
+
+        this.init();
+    }
+
+    init() {
+        this.addEventListeners();
+        document.body.classList.remove('edit-mode');
+    }
+
+    addEventListeners() {
+        this.unlockBtn.addEventListener('click', () => this.showPasswordModal('unlock'));
+        this.editBtn.addEventListener('click', () => this.toggleEditMode());
+        this.resetBtn.addEventListener('click', () => this.showResetConfirmation());
+        this.cancelBtn.addEventListener('click', () => this.hidePasswordModal());
+        this.confirmBtn.addEventListener('click', () => this.verifyPassword());
+        this.passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.verifyPassword();
+        });
+        this.resetCancelBtn.addEventListener('click', () => this.hideResetModal());
+        this.resetConfirmBtn.addEventListener('click', () => this.performReset());
+        this.passwordModal.addEventListener('click', (e) => {
+            if (e.target === this.passwordModal) this.hidePasswordModal();
+        });
+        this.resetModal.addEventListener('click', (e) => {
+            if (e.target === this.resetModal) this.hideResetModal();
+        });
+    }
+
+    showPasswordModal(action) {
+        this.pendingAction = action;
+        this.passwordModal.classList.remove('hidden');
+        this.passwordInput.value = '';
+        this.passwordError.classList.add('hidden');
+        this.modalDescription.textContent = action === 'unlock' ? 'Enter password to unlock admin controls' : 'Enter password to reset all progress';
+        setTimeout(() => this.passwordInput.focus(), 100);
+    }
+
+    hidePasswordModal() {
+        this.passwordModal.classList.add('hidden');
+        this.passwordInput.value = '';
+        this.passwordError.classList.add('hidden');
+        this.pendingAction = null;
+    }
+
+    verifyPassword() {
+        if (this.passwordInput.value === this.password) {
+            this.hidePasswordModal();
+            if (this.pendingAction === 'unlock') this.unlockAdminControls();
+            else if (this.pendingAction === 'reset') this.showResetConfirmation();
+        } else {
+            this.passwordError.classList.remove('hidden');
+            this.passwordInput.value = '';
+            this.passwordInput.focus();
+        }
+    }
+
+    unlockAdminControls() {
+        this.isUnlocked = true;
+        this.unlockBtn.classList.add('hidden');
+        this.adminControls.classList.remove('hidden');
+    }
+
+    toggleEditMode() {
+        this.isEditMode = !this.isEditMode;
+        this.tracker.isEditMode = this.isEditMode;
+        document.body.classList.toggle('edit-mode', this.isEditMode);
+        this.editBtn.classList.toggle('active', this.isEditMode);
+        this.editModeLabel.classList.toggle('visible', this.isEditMode);
+        this.tracker.showToast(this.isEditMode ? "Edit Mode Enabled – LIVE ⚡" : "Edit Mode Disabled.", this.isEditMode ? "success" : "info");
+    }
+
+    showResetConfirmation() {
+        this.resetModal.classList.remove('hidden');
+    }
+
+    hideResetModal() {
+        this.resetModal.classList.add('hidden');
+    }
+
+    performReset() {
+        localStorage.removeItem('study_tracker_v2');
+        localStorage.removeItem('study_tracker_meta');
+        this.hideResetModal();
+        window.location.reload();
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    new StudyTracker();
+    const tracker = new StudyTracker();
+    new AdminController(tracker);
 });
