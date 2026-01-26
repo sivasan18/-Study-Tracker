@@ -25,6 +25,13 @@ class StudyTracker {
         this.dailyMotivation = document.getElementById('daily-motivation');
         this.quickJumpBtn = document.getElementById('quick-jump-btn');
         this.toastContainer = document.getElementById('toast-container');
+        this.contentContainerOuter = document.getElementById('content-container-outer');
+        this.topicModal = document.getElementById('topic-modal');
+        this.topicClassesGrid = document.getElementById('topic-classes-grid');
+        this.modalTopicTitle = document.getElementById('modal-topic-title');
+        this.modalTopicBadge = document.getElementById('modal-topic-badge');
+        this.topicModalClose = document.getElementById('topic-modal-close');
+        this.activeTopic = null;
 
         this.init();
     }
@@ -46,39 +53,54 @@ class StudyTracker {
             });
         });
 
-        // Event delegation for class items
+        this.quickJumpBtn.addEventListener('click', () => this.handleQuickJump());
+        if (this.topicModalClose) this.topicModalClose.addEventListener('click', () => this.closeTopicModal());
+
+        // Modal background close
+        if (this.topicModal) {
+            this.topicModal.addEventListener('click', (e) => {
+                if (e.target === this.topicModal) this.closeTopicModal();
+            });
+        }
+
+        // Event delegation for cards to open modal
         this.topicsContainer.addEventListener('click', (e) => {
+            const card = e.target.closest('.topic-card');
+            if (card) {
+                const topicName = card.dataset.topic;
+                this.openTopicModal(topicName);
+            }
+        });
+
+        // Change delegation for class items inside modal
+        this.topicClassesGrid.addEventListener('click', (e) => {
             const classItem = e.target.closest('.class-item');
             if (classItem) {
                 const checkbox = classItem.querySelector('input[type="checkbox"]');
                 if (!checkbox) return;
 
-                const { subject, subdivision, topic, classIndex } = checkbox.dataset;
+                const { subject, topic, classIndex } = checkbox.dataset;
                 const idx = parseInt(classIndex);
                 const isCompleted = !!(this.storageData[subject] && this.storageData[subject][topic] && this.storageData[subject][topic][idx]);
 
-                // Normal Mode Restriction: Cannot undo/uncheck completed items
                 if (isCompleted && !this.isEditMode) {
                     this.showToast("Completed classes are locked. Unlock Admin to edit.", "info");
                     return;
                 }
 
-                // Manual Toggle Logic
                 const newState = !isCompleted;
-
-                // Prevent default if we clicked the checkbox directly to handle it manually
-                if (e.target.type === 'checkbox') {
-                    e.preventDefault();
-                }
-
-                this.toggleClass(subject, subdivision || null, topic, idx, newState, checkbox);
+                if (e.target.type === 'checkbox') e.preventDefault();
+                this.toggleClass(subject, topic, idx, newState, checkbox);
             }
         });
-
-        this.quickJumpBtn.addEventListener('click', () => this.handleQuickJump());
     }
 
-    switchSubject(subject) {
+    async switchSubject(subject) {
+        // Animation: slide out
+        if (this.contentContainerOuter) this.contentContainerOuter.classList.add('slide-out-left');
+
+        await new Promise(resolve => setTimeout(resolve, 400));
+
         this.currentSubject = subject;
         this.currentSubdivision = null; // Reset subdivision on subject change
 
@@ -89,6 +111,16 @@ class StudyTracker {
 
         this.subjectTitle.textContent = subject;
         this.render();
+
+        // Animation: slide in
+        if (this.contentContainerOuter) {
+            this.contentContainerOuter.classList.remove('slide-out-left');
+            this.contentContainerOuter.classList.add('slide-in-right');
+
+            setTimeout(() => {
+                this.contentContainerOuter.classList.remove('slide-in-right');
+            }, 400);
+        }
     }
 
     switchSubdivision(subName) {
@@ -96,85 +128,81 @@ class StudyTracker {
         this.render();
     }
 
-    toggleClass(subject, subdivision, topicTitle, classIdx, isChecked, checkboxEl) {
+    openTopicModal(topicTitle) {
+        const topicData = this.findTopicData(this.currentSubject, topicTitle);
+        if (!topicData) return;
+
+        this.activeTopic = topicData;
+        this.modalTopicTitle.textContent = topicTitle;
+        this.renderModalClasses();
+        this.topicModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeTopicModal() {
+        this.topicModal.classList.add('hidden');
+        this.activeTopic = null;
+        document.body.style.overflow = '';
+        this.render(); // Refresh cards to show current progress
+    }
+
+    renderModalClasses() {
+        const subject = this.currentSubject;
+        const topic = this.activeTopic;
+        const completedData = (this.storageData[subject] && this.storageData[subject][topic.name]) || {};
+        const completedCount = Object.keys(completedData).length;
+
+        this.modalTopicBadge.textContent = `${completedCount}/${topic.classes} Completed`;
+        this.modalTopicBadge.className = `pill-badge ${completedCount === topic.classes ? 'done' : ''}`;
+
+        this.topicClassesGrid.innerHTML = Array.from({ length: topic.classes }, (_, i) => {
+            const classIdx = i + 1;
+            const completionTimestamp = completedData[classIdx];
+            const isChecked = !!completionTimestamp;
+
+            return `
+                <div class="class-item ${isChecked ? 'completed' : ''}">
+                    <div class="class-left">
+                        <input type="checkbox" 
+                               data-subject="${subject}" 
+                               data-topic="${topic.name}" 
+                               data-class-index="${classIdx}" 
+                               ${isChecked ? 'checked' : ''}>
+                        <span class="class-name">Lesson ${classIdx}</span>
+                    </div>
+                    ${isChecked ? `<span class="completion-date">${completionTimestamp}</span>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    toggleClass(subject, topicTitle, classIdx, isChecked, checkboxEl) {
         if (!this.storageData[subject]) this.storageData[subject] = {};
         if (!this.storageData[subject][topicTitle]) this.storageData[subject][topicTitle] = {};
 
-        const today = new Date().toISOString().split('T')[0];
-        if (!this.metadata.dailyStats[today]) this.metadata.dailyStats[today] = 0;
-
         if (isChecked) {
             const date = new Date();
-            const dateStr = `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const hours = date.getHours();
+            const mins = String(date.getMinutes()).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = String(hours % 12 || 12).padStart(2, '0');
+            const dateStr = `${day}/${month} ${displayHours}:${mins} ${ampm}`;
+
             this.storageData[subject][topicTitle][classIdx] = dateStr;
 
-            // Updated last studied and daily count
-            this.metadata.lastStudied = { subject, subdivision, topic: topicTitle };
-            this.metadata.dailyStats[today]++;
-            this.showToast("Class marked as completed! ✨", "success");
+            this.metadata.lastStudied = { subject, topic: topicTitle };
+            this.showToast("Progress Saved! ✨", "success");
         } else {
             delete this.storageData[subject][topicTitle][classIdx];
-            if (this.metadata.dailyStats[today] > 0) this.metadata.dailyStats[today]--;
-            this.showToast("Class reverted to pending.", "info");
+            this.showToast("Progress Reverted.", "info");
         }
 
         this.saveData();
-
-        // Granular UI Update instead of this.render()
-        this.updateItemUI(checkboxEl, isChecked, topicTitle, subject);
+        this.renderModalClasses(); // Update modal immediately
         this.updateSubjectProgress();
         this.updateOverallProgress();
-        this.updateDailyMotivation();
-
-        // Auto-collapse behavior only in normal mode
-        if (isChecked && !this.isEditMode) {
-            const card = document.querySelector(`.topic-card[data-topic="${topicTitle}"]`);
-            if (card) {
-                setTimeout(() => card.classList.remove('expanded'), 300);
-            }
-        }
-    }
-
-    updateItemUI(checkboxEl, isChecked, topicTitle, subjectName) {
-        const itemWrapper = checkboxEl.closest('.class-item');
-        const topicCard = checkboxEl.closest('.topic-card');
-
-        // 1. Update the individual item
-        if (itemWrapper) {
-            itemWrapper.classList.toggle('completed', isChecked);
-
-            // Force checkbox state (very important for manual toggles)
-            const checkbox = itemWrapper.querySelector('input[type="checkbox"]');
-            if (checkbox) checkbox.checked = isChecked;
-
-            // Remove old date if exists, add new one if checked
-            const existingDate = itemWrapper.querySelector('.completion-date');
-            if (existingDate) existingDate.remove();
-
-            if (isChecked) {
-                const dateStr = this.storageData[subjectName][topicTitle][checkboxEl.dataset.classIndex];
-                const dateSpan = document.createElement('span');
-                dateSpan.className = 'completion-date';
-                dateSpan.textContent = `Completed on ${dateStr}`;
-                itemWrapper.appendChild(dateSpan);
-            }
-        }
-
-        // 2. Update parent card status and badge
-        if (topicCard) {
-            const completedData = this.storageData[subjectName][topicTitle] || {};
-            const completedCount = Object.keys(completedData).length;
-            const topicData = this.findTopicData(subjectName, topicTitle);
-            const totalClasses = topicData ? topicData.classes : 0;
-
-            const isFullyCompleted = completedCount === totalClasses;
-            topicCard.classList.toggle('completed', isFullyCompleted);
-
-            const badge = topicCard.querySelector('.topic-status-badge');
-            if (badge) {
-                badge.textContent = `${completedCount}/${totalClasses} DONE`;
-            }
-        }
     }
 
     findTopicData(subjectName, topicTitle) {
@@ -190,6 +218,92 @@ class StudyTracker {
             return subject.topics.find(t => t.name === topicTitle);
         }
         return null;
+    }
+
+    getTopicIcon(topicName) {
+        const iconMap = {
+            // Reasoning
+            "Coding & Decoding": "💻",
+            "Alphabetical Series": "🔠",
+            "Number Series": "🔢",
+            "Syllogism": "🧠",
+            "Analogy": "🤝",
+            "Venn Diagram": "⭕",
+            "Ranking": "🏆",
+            "Seating Arrangement": "🪑",
+            "Blood Relation": "👨‍👩‍👧‍👦",
+            "Direction": "⬆️",
+            "Calendar": "📅",
+            "Statement & Conclusion": "📝",
+            "Statement & Argument": "🗣️",
+            "Statement & Assumption": "💭",
+            "Statement & Course of Action": "🚀",
+            "Counting of Figures": "📐",
+            "Mirror Image": "🪞",
+            "Water Image": "💧",
+
+            // Mathematics
+            "Calculation": "➗",
+            "Ratio & Proportion": "📉",
+            "Percentage": "📈",
+            "Profit & Loss": "💰",
+            "Discount": "🏷️",
+            "Simple Interest": "🏦",
+            "Compound Interest": "💹",
+            "Age": "🎂",
+            "Time & Work": "⏱️",
+            "Time & Distance": "🚗",
+            "Train & Race": "🚂",
+            "Pipes & Cisterns": "🚰",
+            "Boats & Streams": "⛵",
+            "Partnership": "🤝",
+            "HCF & LCM": "🔢",
+            "Mixture & Alligation": "🧪",
+            "Average": "📊",
+            "Data Interpretation": "📋",
+            "Statistics": "📉",
+            "Surds & Indices": "√",
+            "Number System": "🔟",
+            "AP & GP": "📏",
+            "Algebra": "🧮",
+            "Polynomials & Equations": "📝",
+            "Trigonometry": "📐",
+            "Height & Distance": "🔭",
+            "Mensuration": "📏",
+            "Geometry": "📐",
+            "Simplification": "✅",
+
+            // Science
+            "Light": "💡",
+            "Heat": "🔥",
+            "Electricity": "⚡",
+            "Magnetic Effects of Current": "🧲",
+            "Motion": "🏃",
+            "Laws of Motion": "⚖️",
+            "Gravitation": "🌎",
+            "Work, Power & Energy": "🔋",
+            "Sound": "🔊",
+            "Thermal Heat": "🌡️",
+            "Electronics": "📟",
+            "Matter": "⚛️",
+            "Matter Around Us Is Pure": "🔬",
+            "Atoms & Molecules": "🔬",
+            "Structure of Atom": "⚛️",
+            "Chemical Reactions & Equations": "🧪",
+            "Acids, Bases & Salts": "🧪",
+            "Metals & Non-metals": "💎",
+            "Carbon & Its Compounds": "💎",
+            "Unit of Life": "🧬",
+            "Tissues": "🔬",
+            "Diversity in Living Organisms": "🌿",
+            "Life Processes": "🌱",
+            "Control & Coordination": "🧠",
+            "How Do Organisms Reproduce": "👪",
+            "Heredity & Evolution": "🧬",
+            "Nutrition & Diseases": "🍎",
+            "YouTube Science Classes": "📺"
+        };
+        return iconMap[topicName] || "📚";
     }
 
     showToast(message, type = "info") {
@@ -223,14 +337,8 @@ class StudyTracker {
             this.render();
 
             setTimeout(() => {
-                const card = document.querySelector(`.topic-card[data-topic="${target.topic}"]`);
-                if (card) {
-                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    card.classList.add('expanded');
-                    card.classList.add('last-studied');
-                    setTimeout(() => card.classList.remove('last-studied'), 2000);
-                }
-            }, 100);
+                this.openTopicModal(target.topic);
+            }, 500);
         } else {
             alert("All topics are completed! Great job!");
         }
@@ -313,55 +421,25 @@ class StudyTracker {
 
     createTopicCard(topic) {
         const subject = this.currentSubject;
-        const subdivision = this.currentSubdivision;
         const completedData = (this.storageData[subject] && this.storageData[subject][topic.name]) || {};
         const completedCount = Object.keys(completedData).length;
         const isTopicCompleted = completedCount === topic.classes;
 
-        const isLastStudied = this.metadata.lastStudied &&
-            this.metadata.lastStudied.subject === subject &&
-            this.metadata.lastStudied.topic === topic.name;
-
-        const isYouTubeScience = topic.name === "YouTube Science Classes";
-
         const card = document.createElement('div');
-        card.className = `topic-card ${isTopicCompleted ? 'completed' : ''} ${isLastStudied ? 'last-studied' : ''} ${isYouTubeScience ? 'full-width' : ''}`;
+        card.className = `topic-card ${isTopicCompleted ? 'completed' : ''}`;
         card.dataset.topic = topic.name;
 
         card.innerHTML = `
-            <div class="topic-header" onclick="this.parentElement.classList.toggle('expanded')">
-                <div class="topic-title-group">
-                    <span class="topic-type">${topic.classes} Classes</span>
-                    <h3 class="topic-title">${topic.name}</h3>
-                </div>
-                <div class="topic-header-right">
-                    <div class="topic-status-badge">
-                        ${completedCount}/${topic.classes} DONE
-                    </div>
-                    <span class="expand-icon">▼</span>
+            <div class="topic-info-left" style="overflow: hidden;">
+                <div class="icon-box">${this.getTopicIcon(topic.name)}</div>
+                <div class="topic-details" style="overflow: hidden;">
+                    <span class="topic-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem;">${topic.name}</span>
+                    <span class="topic-lessons-count" style="font-size: 0.8rem;">${completedCount}/${topic.classes} Lessons</span>
                 </div>
             </div>
-            <div class="classes-list ${isYouTubeScience ? 'grid-layout' : ''}">
-                ${Array.from({ length: topic.classes }, (_, i) => {
-            const classIdx = i + 1;
-            const completionDate = completedData[classIdx];
-            const isChecked = !!completionDate;
-
-            return `
-                        <label class="class-item ${isChecked ? 'completed' : ''}">
-                            <div class="class-left">
-                                <input type="checkbox" 
-                                       data-subject="${subject}" 
-                                       ${subdivision ? `data-subdivision="${subdivision}"` : ''}
-                                       data-topic="${topic.name}" 
-                                       data-class-index="${classIdx}" 
-                                       ${isChecked ? 'checked' : ''}>
-                                <span class="class-name">Class ${classIdx}</span>
-                            </div>
-                            ${isChecked ? `<span class="completion-date">Completed on ${completionDate}</span>` : ''}
-                        </label>
-                    `;
-        }).join('')}
+            <div class="topic-info-right" style="display: flex; align-items: center; flex-shrink: 0;">
+                ${isTopicCompleted ? '<span class="pill-badge done" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">DONE</span>' : ''}
+                <span class="topic-arrow" style="font-size: 0.8rem;">❯</span>
             </div>
         `;
 
@@ -394,9 +472,18 @@ class StudyTracker {
 
         const percentage = totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0;
 
-        if (this.subjectProgressText) this.subjectProgressText.textContent = `${completedTopics}/${totalTopics} Topics Completed`;
+        if (this.subjectProgressText) this.subjectProgressText.innerHTML = `<span class="pill-badge">🧠 ${completedClasses} / ${totalClasses} Completed</span>`;
         if (this.subjectPercentageText) this.subjectPercentageText.textContent = `${percentage}%`;
         if (this.subjectCircleFill) this.subjectCircleFill.setAttribute('stroke-dasharray', `${percentage}, 100`);
+    }
+
+    updateLastStudied() {
+        if (this.metadata.lastStudied) {
+            const lastStudiedEl = document.getElementById('last-studied-display');
+            if (lastStudiedEl) {
+                lastStudiedEl.textContent = `Last Studied: ${this.metadata.lastStudied.topic}`;
+            }
+        }
     }
 
     updateOverallProgress() {
@@ -422,6 +509,8 @@ class StudyTracker {
         const percentage = totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0;
         if (this.overallPercentageText) this.overallPercentageText.textContent = `${percentage}%`;
         if (this.overallProgressBar) this.overallProgressBar.style.width = `${percentage}%`;
+
+        this.updateLastStudied();
     }
 }
 

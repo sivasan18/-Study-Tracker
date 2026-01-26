@@ -25,6 +25,9 @@
             <button id="unlock-btn" class="control-btn unlock-btn">
                 <span class="icon">🔐</span> Unlock
             </button>
+            <div id="last-studied-container" class="header-last-studied">
+                <span id="last-studied-display">Last Studied: ---</span>
+            </div>
             <!-- Hidden until unlocked -->
             <div id="admin-controls" class="admin-controls hidden">
                 <span class="edit-mode-label" id="edit-mode-label">⚡ ADMIN EDIT MODE – LIVE</span>
@@ -69,6 +72,20 @@
         </div>
     </div>
 
+    <!-- Topic Detail Modal -->
+    <div id="topic-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 800px;">
+            <button class="modal-close" id="topic-modal-close">&times;</button>
+            <div class="modal-header-pill">
+                <h2 id="modal-topic-title">Topic Name</h2>
+                <div id="modal-topic-badge" class="pill-badge">0/0 Completed</div>
+            </div>
+            <div id="topic-classes-grid" class="topic-modal-grid">
+                <!-- Classes injected here -->
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Sidebar / Navigation -->
         <aside class="sidebar">
@@ -102,40 +119,42 @@
 
         <!-- Main Content Area -->
         <main class="main-content">
-            <header class="content-header">
-                <div class="header-info">
-                    <h2 id="current-subject-title">Reasoning</h2>
-                    <div class="header-metadata">
-                        <p id="subject-progress-text">0/0 Topics Completed</p>
-                        <span id="daily-motivation" class="motivation-line">Today completed: 0 classes</span>
-                    </div>
-                </div>
-                <div class="header-actions">
-                    <button id="quick-jump-btn" class="quick-jump-btn">
-                        <span class="icon">🚀</span> Continue Next Class
-                    </button>
-                    <div class="subject-progress-box">
-                        <div class="subject-progress-circle">
-                            <svg viewBox="0 0 36 36" class="circular-chart">
-                                <path class="circle-bg"
-                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                <path id="subject-progress-circle-fill" class="circle" stroke-dasharray="0, 100"
-                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                <text x="18" y="20.35" class="percentage" id="subject-percentage">0%</text>
-                            </svg>
+            <div id="content-container-outer" class="content-container-outer">
+                <header class="content-header">
+                    <div class="header-info">
+                        <h2 id="current-subject-title">Reasoning</h2>
+                        <div class="header-metadata">
+                            <p id="subject-progress-text">0/0 Topics Completed</p>
+                            <span id="daily-motivation" class="motivation-line">Today completed: 0 classes</span>
                         </div>
                     </div>
+                    <div class="header-actions">
+                        <button id="quick-jump-btn" class="quick-jump-btn">
+                            <span class="icon">🚀</span> Continue Next Class
+                        </button>
+                        <div class="subject-progress-box">
+                            <div class="subject-progress-circle">
+                                <svg viewBox="0 0 36 36" class="circular-chart">
+                                    <path class="circle-bg"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    <path id="subject-progress-circle-fill" class="circle" stroke-dasharray="0, 100"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    <text x="18" y="20.35" class="percentage" id="subject-percentage">0%</text>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Subdivision Navigation (Dynamic) -->
+                <div id="subdivision-nav" class="subdivision-nav hidden">
+                    <!-- Buttons like "Physics", "Chemistry" etc. go here -->
                 </div>
-            </header>
 
-            <!-- Subdivision Navigation (Dynamic) -->
-            <div id="subdivision-nav" class="subdivision-nav hidden">
-                <!-- Buttons like "Physics", "Chemistry" etc. go here -->
-            </div>
-
-            <div id="topics-container" class="topics-list">
-                <!-- Topics will be injected here by JS -->
-                <div class="loading-state">Initializing your study plan...</div>
+                <div id="topics-container" class="topics-list">
+                    <!-- Topics will be injected here by JS -->
+                    <div class="loading-state">Initializing your study plan...</div>
+                </div>
             </div>
         </main>
     </div>
