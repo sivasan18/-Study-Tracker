@@ -16,6 +16,11 @@
     --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     --transition-standard: 0.4s ease-in-out;
     --transition-fast: 0.2s ease;
+
+    /* Science Subject Colors */
+    --physics-accent: #00E5FF;
+    --chemistry-accent: #39FF14;
+    --biology-accent: #FF6EC7;
 }
 
 * {
@@ -583,6 +588,75 @@ body.edit-mode .class-item {
     box-shadow: 0 0 20px var(--accent-glow);
 }
 
+/* Science Subject Themes */
+.theme-physics {
+    --accent-color: var(--physics-accent);
+    --accent-glow: rgba(0, 229, 255, 0.4);
+}
+
+.theme-chemistry {
+    --accent-color: var(--chemistry-accent);
+    --accent-glow: rgba(57, 255, 20, 0.4);
+}
+
+.theme-biology {
+    --accent-color: var(--biology-accent);
+    --accent-glow: rgba(255, 110, 199, 0.4);
+}
+
+/* Theme Styles */
+[class*="theme-"] .topic-card:hover,
+[class*="theme-"] .topic-card.active {
+    border-left: 4px solid var(--accent-color);
+    box-shadow: 0 0 15px var(--accent-glow);
+}
+
+[class*="theme-"] .icon-box {
+    color: var(--accent-color);
+    text-shadow: 0 0 10px var(--accent-glow);
+}
+
+[class*="theme-"] .progress-fill,
+[class*="theme-"] .circle {
+    background: linear-gradient(to right, var(--accent-color), #ffffff);
+    stroke: var(--accent-color);
+}
+
+[class*="theme-"] .class-item:hover .class-name,
+[class*="theme-"] .class-item input:checked+.class-name {
+    color: var(--accent-color);
+}
+
+[class*="theme-"] .class-item input:checked {
+    accent-color: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+[class*="theme-"] .pill-badge {
+    background: var(--accent-glow);
+    color: var(--accent-color);
+    border: 1px solid var(--accent-color);
+}
+
+/* Highlight Pulse Animation */
+@keyframes highlight-pulse {
+    0% {
+        box-shadow: 0 0 0 0 var(--accent-glow);
+    }
+
+    70% {
+        box-shadow: 0 0 0 15px rgba(255, 255, 255, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    }
+}
+
+.newly-active {
+    animation: highlight-pulse 0.6s ease-out;
+}
+
 .sidebar-footer {
     padding: 1.5rem;
     border-top: 1px solid var(--border-color);
@@ -791,6 +865,13 @@ body.edit-mode .class-item {
 .sub-btn:hover {
     border-color: var(--accent-color);
     color: var(--text-primary);
+}
+
+.sub-btn.active {
+    background: var(--accent-color);
+    color: var(--bg-deep);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px var(--accent-glow);
 }
 
 /* Pill Badge */
@@ -1053,12 +1134,14 @@ body.edit-mode .class-item {
 }
 
 .class-item input[type="checkbox"]:checked {
-    background: var(--success-color);
-    border-color: var(--success-color);
+    background: rgba(34, 197, 94, 0.15);
+    border-color: #22c55e;
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
 }
 
 .class-item input[type="checkbox"]:checked::before {
-    transform: scale(1);
+    transform: scale(1.1);
+    box-shadow: inset 1em 1em #22c55e;
 }
 
 .class-name {

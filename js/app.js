@@ -110,6 +110,7 @@ class StudyTracker {
         });
 
         this.subjectTitle.textContent = subject;
+        this.applySubjectTheme(subject);
         this.render();
 
         // Animation: slide in
@@ -125,7 +126,29 @@ class StudyTracker {
 
     switchSubdivision(subName) {
         this.currentSubdivision = subName;
+        this.applySubdivisionTheme(subName);
         this.render();
+
+        // Add highlight pulse to active sub-btn
+        const activeBtn = this.subdivisionNav.querySelector(`.sub-btn.active`);
+        if (activeBtn) {
+            activeBtn.classList.add('newly-active');
+            setTimeout(() => activeBtn.classList.remove('newly-active'), 600);
+        }
+    }
+
+    applySubjectTheme(subject) {
+        // Remove existing theme classes
+        document.body.classList.remove('theme-reasoning', 'theme-mathematics', 'theme-science');
+        document.body.classList.add(`theme-${subject.toLowerCase()}`);
+    }
+
+    applySubdivisionTheme(subName) {
+        // Remove existing subdivision theme classes
+        document.body.classList.remove('theme-physics', 'theme-chemistry', 'theme-biology');
+        if (['Physics', 'Chemistry', 'Biology'].includes(subName)) {
+            document.body.classList.add(`theme-${subName.toLowerCase()}`);
+        }
     }
 
     openTopicModal(topicTitle) {
@@ -275,6 +298,7 @@ class StudyTracker {
 
             // Science
             "Light": "💡",
+            "Human Eye": "👁️",
             "Heat": "🔥",
             "Electricity": "⚡",
             "Magnetic Effects of Current": "🧲",
@@ -383,7 +407,10 @@ class StudyTracker {
             topicsToShow = activeSub ? activeSub.topics : [];
 
             const subBtns = this.subdivisionNav.querySelectorAll('.sub-btn');
-            subBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.name === this.currentSubdivision));
+            subBtns.forEach(btn => {
+                const isActive = btn.dataset.name === this.currentSubdivision;
+                btn.classList.toggle('active', isActive);
+            });
         } else {
             topicsToShow = subjectData.topics;
         }
@@ -475,6 +502,11 @@ class StudyTracker {
         if (this.subjectProgressText) this.subjectProgressText.innerHTML = `<span class="pill-badge">🧠 ${completedClasses} / ${totalClasses} Completed</span>`;
         if (this.subjectPercentageText) this.subjectPercentageText.textContent = `${percentage}%`;
         if (this.subjectCircleFill) this.subjectCircleFill.setAttribute('stroke-dasharray', `${percentage}, 100`);
+
+        // Update subdivision nav if visible to ensure active state is correct
+        if (this.currentSubject === 'Science' && this.currentSubdivision) {
+            this.applySubdivisionTheme(this.currentSubdivision);
+        }
     }
 
     updateLastStudied() {

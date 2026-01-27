@@ -80,15 +80,15 @@ const syllabusData = {
                 "name": "Physics",
                 "topics": [
                     { "name": "Light", "classes": 15 },
-                    { "name": "Heat", "classes": 5 },
+                    { "name": "Human Eye", "classes": 5 },
                     { "name": "Electricity", "classes": 12 },
                     { "name": "Magnetic Effects of Current", "classes": 7 },
                     { "name": "Motion", "classes": 4 },
                     { "name": "Laws of Motion", "classes": 3 },
                     { "name": "Gravitation", "classes": 5 },
-                    { "name": "Work, Power & Energy", "classes": 9 },
+                    { "name": "Work, Power & Energy", "classes": 4 },
                     { "name": "Sound", "classes": 6 },
-                    { "name": "Thermal Heat", "classes": 4 },
+                    { "name": "Heat", "classes": 4 },
                     { "name": "Electronics", "classes": 4 }
                 ]
             },
