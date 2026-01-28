@@ -176,7 +176,14 @@ class StudyTracker {
         const completedCount = Object.keys(completedData).length;
 
         this.modalTopicBadge.textContent = `${completedCount}/${topic.classes} Completed`;
-        this.modalTopicBadge.className = `pill-badge ${completedCount === topic.classes ? 'done' : ''}`;
+
+        let badgeClass = 'pill-badge';
+        if (completedCount === topic.classes) {
+            badgeClass += ' done';
+        } else if (completedCount > 0) {
+            badgeClass += ' in-progress';
+        }
+        this.modalTopicBadge.className = badgeClass;
 
         this.topicClassesGrid.innerHTML = Array.from({ length: topic.classes }, (_, i) => {
             const classIdx = i + 1;
@@ -464,8 +471,11 @@ class StudyTracker {
                     <span class="topic-lessons-count" style="font-size: 0.8rem;">${completedCount}/${topic.classes} Lessons</span>
                 </div>
             </div>
-            <div class="topic-info-right" style="display: flex; align-items: center; flex-shrink: 0;">
-                ${isTopicCompleted ? '<span class="pill-badge done" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">DONE</span>' : ''}
+            <div class="topic-info-right" style="display: flex; align-items: center; flex-shrink: 0; gap: 0.5rem;">
+                ${isTopicCompleted ?
+                '<span class="pill-badge done" style="font-size: 0.70rem; padding: 0.2rem 0.5rem;">DONE</span>' :
+                (completedCount > 0 ? '<span class="pill-badge in-progress" style="font-size: 0.70rem; padding: 0.2rem 0.5rem;">In Progress</span>' : '')
+            }
                 <span class="topic-arrow" style="font-size: 0.8rem;">❯</span>
             </div>
         `;
