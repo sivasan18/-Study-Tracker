@@ -21,6 +21,11 @@
     --physics-accent: #00E5FF;
     --chemistry-accent: #39FF14;
     --biology-accent: #FF6EC7;
+
+    /* New Subject / Section Colors */
+    --clr-science: #39ff14;
+    --clr-aptitude: #00fbff;
+    --clr-ca: #39ff14;
 }
 
 * {
@@ -602,6 +607,16 @@ body.edit-mode .class-item {
 .theme-biology {
     --accent-color: var(--biology-accent);
     --accent-glow: rgba(255, 110, 199, 0.4);
+}
+
+.theme-science {
+    --accent-color: var(--clr-science);
+    --accent-glow: rgba(57, 255, 20, 0.4);
+}
+
+.theme-aptitude {
+    --accent-color: var(--clr-aptitude);
+    --accent-glow: rgba(0, 251, 255, 0.4);
 }
 
 /* Theme Styles */

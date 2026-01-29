@@ -145,9 +145,14 @@ class StudyTracker {
 
     applySubdivisionTheme(subName) {
         // Remove existing subdivision theme classes
-        document.body.classList.remove('theme-physics', 'theme-chemistry', 'theme-biology');
+        document.body.classList.remove('theme-physics', 'theme-chemistry', 'theme-biology', 'theme-science', 'theme-aptitude');
+
         if (['Physics', 'Chemistry', 'Biology'].includes(subName)) {
             document.body.classList.add(`theme-${subName.toLowerCase()}`);
+        } else if (subName === 'YouTube Science') {
+            document.body.classList.add('theme-science');
+        } else if (subName.includes('Aptitude')) {
+            document.body.classList.add('theme-aptitude');
         }
     }
 
