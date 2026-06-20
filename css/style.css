@@ -123,13 +123,269 @@ h3,
     gap: 1.5rem;
 }
 
-.header-last-studied {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    background: rgba(255, 255, 255, 0.05);
-    padding: 0.4rem 1rem;
+/* ═══════════════════════════════════════════════════════════════
+   ✨ PREMIUM LAST STUDIED WIDGET
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Animated gradient border keyframes */
+@keyframes ls-border-rotate {
+    0% { --ls-angle: 0deg; }
+    100% { --ls-angle: 360deg; }
+}
+
+@property --ls-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
+@keyframes ls-shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+
+@keyframes ls-pulse-glow {
+    0%, 100% {
+        box-shadow:
+            0 0 8px rgba(6, 182, 212, 0.3),
+            0 0 16px rgba(6, 182, 212, 0.1),
+            inset 0 0 8px rgba(6, 182, 212, 0.05);
+    }
+    50% {
+        box-shadow:
+            0 0 14px rgba(6, 182, 212, 0.5),
+            0 0 28px rgba(6, 182, 212, 0.2),
+            inset 0 0 12px rgba(6, 182, 212, 0.08);
+    }
+}
+
+@keyframes ls-breathing {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.01); }
+}
+
+@keyframes ls-sparkle {
+    0% { opacity: 0; transform: scale(0) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1) rotate(180deg); }
+    100% { opacity: 0; transform: scale(0) rotate(360deg); }
+}
+
+@keyframes ls-badge-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+@keyframes ls-fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.last-studied-widget {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 1rem 0.45rem 0.85rem;
     border-radius: 100px;
-    border: 1px solid var(--border-color);
+    cursor: default;
+    overflow: visible;
+    z-index: 1;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Glassmorphism */
+    background: linear-gradient(
+        135deg,
+        rgba(6, 182, 212, 0.08) 0%,
+        rgba(139, 92, 246, 0.06) 50%,
+        rgba(6, 182, 212, 0.08) 100%
+    );
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+
+    /* Animated gradient border */
+    border: 1.5px solid transparent;
+    background-clip: padding-box;
+
+    /* Soft shadow */
+    box-shadow:
+        0 0 8px rgba(6, 182, 212, 0.3),
+        0 0 16px rgba(6, 182, 212, 0.1),
+        inset 0 0 8px rgba(6, 182, 212, 0.05);
+
+    animation: ls-pulse-glow 4s ease-in-out infinite;
+}
+
+/* Animated gradient border via pseudo-element */
+.last-studied-widget::before {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    border-radius: 100px;
+    padding: 1.5px;
+    background: conic-gradient(
+        from var(--ls-angle, 0deg),
+        #06b6d4,
+        #3b82f6,
+        #8b5cf6,
+        #ffffff,
+        #06b6d4
+    );
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: ls-border-rotate 4s linear infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Hover Effects */
+.last-studied-widget:hover {
+    transform: scale(1.04);
+    box-shadow:
+        0 0 18px rgba(6, 182, 212, 0.5),
+        0 0 36px rgba(6, 182, 212, 0.25),
+        inset 0 0 14px rgba(6, 182, 212, 0.1);
+}
+
+.last-studied-widget:hover .ls-label {
+    color: #22d3ee;
+    text-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
+}
+
+.last-studied-widget:hover .ls-topic-text {
+    color: #ffffff;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+/* Content layout */
+.ls-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    line-height: 1.2;
+    z-index: 2;
+}
+
+.ls-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #06b6d4;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.3s ease;
+}
+
+.ls-topic {
+    position: relative;
+    display: inline-block;
+    overflow: hidden;
+}
+
+.ls-topic-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    white-space: nowrap;
+    transition: all 0.4s ease;
+
+    /* Shimmer / light sweep effect */
+    background: linear-gradient(
+        90deg,
+        rgba(255,255,255,0.95) 0%,
+        rgba(255,255,255,0.95) 35%,
+        rgba(6,182,212,1) 50%,
+        rgba(255,255,255,0.95) 65%,
+        rgba(255,255,255,0.95) 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: ls-shimmer 3s ease-in-out infinite;
+}
+
+/* Empty state breathing */
+.last-studied-widget.ls-empty {
+    animation:
+        ls-pulse-glow 4s ease-in-out infinite,
+        ls-breathing 3s ease-in-out infinite;
+}
+
+.last-studied-widget.ls-empty .ls-topic-text {
+    font-size: 0.72rem;
+    font-weight: 500;
+    background: linear-gradient(
+        90deg,
+        rgba(148,163,184,0.9) 0%,
+        rgba(148,163,184,0.9) 35%,
+        rgba(6,182,212,0.8) 50%,
+        rgba(148,163,184,0.9) 65%,
+        rgba(148,163,184,0.9) 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: ls-shimmer 4s ease-in-out infinite;
+}
+
+/* Fade transition for topic changes */
+.ls-topic-text.ls-fade-out {
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: all 0.25s ease;
+}
+
+.ls-topic-text.ls-fade-in {
+    animation: ls-fadeIn 0.35s ease forwards;
+}
+
+/* Recency Badge */
+.ls-badge {
+    font-size: 0.55rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 100px;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+    z-index: 2;
+    flex-shrink: 0;
+}
+
+.ls-badge.ls-today {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    animation: ls-badge-pulse 2s ease-in-out infinite;
+}
+
+.ls-badge.ls-yesterday {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    animation: ls-badge-pulse 2.5s ease-in-out infinite;
+}
+
+/* Sparkle Particles Container */
+.ls-particles {
+    position: absolute;
+    inset: -8px;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 0;
+}
+
+.ls-particle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(6,182,212,0.9), transparent);
+    animation: ls-sparkle var(--duration) ease-in-out infinite;
+    animation-delay: var(--delay);
+    opacity: 0;
 }
 
 .admin-controls {

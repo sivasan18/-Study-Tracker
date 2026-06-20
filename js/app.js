@@ -9,6 +9,7 @@ class StudyTracker {
         this.storageData = JSON.parse(localStorage.getItem('study_tracker_v2')) || {};
         this.metadata = JSON.parse(localStorage.getItem('study_tracker_meta')) || {
             lastStudied: null, // { subject, subdivision, topic }
+            lastStudiedDate: null, // ISO date string
             dailyStats: {} // { 'YYYY-MM-DD': count }
         };
 
@@ -228,6 +229,7 @@ class StudyTracker {
             this.storageData[subject][topicTitle][classIdx] = dateStr;
 
             this.metadata.lastStudied = { subject, topic: topicTitle };
+            this.metadata.lastStudiedDate = new Date().toISOString();
             this.showToast("Progress Saved! ✨", "success");
         } else {
             delete this.storageData[subject][topicTitle][classIdx];
@@ -525,11 +527,106 @@ class StudyTracker {
     }
 
     updateLastStudied() {
-        if (this.metadata.lastStudied) {
-            const lastStudiedEl = document.getElementById('last-studied-display');
-            if (lastStudiedEl) {
-                lastStudiedEl.textContent = `Last Studied: ${this.metadata.lastStudied.topic}`;
+        const widget = document.getElementById('last-studied-container');
+        const topicTextEl = document.getElementById('last-studied-text');
+        const badgeEl = document.getElementById('ls-recency-badge');
+
+        if (!widget || !topicTextEl || !badgeEl) return;
+
+        // Initialize sparkle particles (once)
+        if (!this._particlesInitialized) {
+            this._particlesInitialized = true;
+            this.createSparkleParticles();
+        }
+
+        const lastStudied = this.metadata.lastStudied;
+
+        if (!lastStudied || !lastStudied.topic) {
+            // Empty state
+            widget.classList.add('ls-empty');
+            topicTextEl.textContent = 'Nothing yet – Start Learning 🚀';
+            badgeEl.classList.add('hidden');
+            badgeEl.classList.remove('ls-today', 'ls-yesterday');
+            return;
+        }
+
+        widget.classList.remove('ls-empty');
+
+        // Fade transition if topic changed
+        const newText = lastStudied.topic;
+        if (topicTextEl.textContent !== newText && topicTextEl.textContent !== 'Nothing yet – Start Learning 🚀') {
+            topicTextEl.classList.add('ls-fade-out');
+            setTimeout(() => {
+                topicTextEl.textContent = newText;
+                topicTextEl.classList.remove('ls-fade-out');
+                topicTextEl.classList.add('ls-fade-in');
+                setTimeout(() => topicTextEl.classList.remove('ls-fade-in'), 350);
+            }, 250);
+        } else {
+            topicTextEl.textContent = newText;
+        }
+
+        // Recency badge
+        const studiedDate = this.metadata.lastStudiedDate;
+        if (studiedDate) {
+            const today = new Date();
+            const studied = new Date(studiedDate);
+            const todayStr = today.toISOString().split('T')[0];
+            const studiedStr = studied.toISOString().split('T')[0];
+
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            badgeEl.classList.remove('hidden', 'ls-today', 'ls-yesterday');
+
+            if (studiedStr === todayStr) {
+                badgeEl.textContent = '● Today';
+                badgeEl.classList.add('ls-today');
+            } else if (studiedStr === yesterdayStr) {
+                badgeEl.textContent = '● Yesterday';
+                badgeEl.classList.add('ls-yesterday');
+            } else {
+                badgeEl.classList.add('hidden');
             }
+        } else {
+            badgeEl.classList.add('hidden');
+        }
+    }
+
+    createSparkleParticles() {
+        const container = document.getElementById('ls-particles');
+        if (!container) return;
+
+        const particleCount = 12;
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('span');
+            particle.className = 'ls-particle';
+
+            // Random positions around the widget
+            const top = Math.random() * 100;
+            const left = Math.random() * 100;
+            const duration = 2.5 + Math.random() * 3; // 2.5s - 5.5s
+            const delay = Math.random() * 5; // 0 - 5s delay
+            const size = 2 + Math.random() * 2; // 2px - 4px
+
+            particle.style.top = `${top}%`;
+            particle.style.left = `${left}%`;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.setProperty('--duration', `${duration}s`);
+            particle.style.setProperty('--delay', `${delay}s`);
+
+            // Alternate colors: cyan, purple, white
+            const colors = [
+                'rgba(6,182,212,0.9)',
+                'rgba(139,92,246,0.8)',
+                'rgba(255,255,255,0.9)'
+            ];
+            const color = colors[i % colors.length];
+            particle.style.background = `radial-gradient(circle, ${color}, transparent)`;
+
+            container.appendChild(particle);
         }
     }
 

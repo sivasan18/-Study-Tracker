@@ -121,7 +121,7 @@ const syllabusData = {
             {
                 "name": "YouTube Science",
                 "topics": [
-                    { "name": "YouTube Science Classes", "classes": 52 }
+                    { "name": "YouTube Science Classes", "classes": 64 }
                 ]
             }
         ]
