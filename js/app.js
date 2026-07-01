@@ -204,7 +204,7 @@ class StudyTracker {
                                data-topic="${topic.name}" 
                                data-class-index="${classIdx}" 
                                ${isChecked ? 'checked' : ''}>
-                        <span class="class-name">Lesson ${classIdx}</span>
+                        <span class="class-name">Topic ${classIdx}</span>
                     </div>
                     ${isChecked ? `<span class="completion-date">${completionTimestamp}</span>` : ''}
                 </div>
@@ -475,12 +475,12 @@ class StudyTracker {
                 <div class="icon-box">${this.getTopicIcon(topic.name)}</div>
                 <div class="topic-details" style="overflow: hidden;">
                     <span class="topic-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem;">${topic.name}</span>
-                    <span class="topic-lessons-count" style="font-size: 0.8rem;">${completedCount}/${topic.classes} Lessons</span>
+                    <span class="topic-lessons-count" style="font-size: 0.8rem;">${completedCount}/${topic.classes} Topics</span>
                 </div>
             </div>
             <div class="topic-info-right" style="display: flex; align-items: center; flex-shrink: 0; gap: 0.5rem;">
                 ${isTopicCompleted ?
-                '<span class="pill-badge done" style="font-size: 0.70rem; padding: 0.2rem 0.5rem;">DONE</span>' :
+                '<span class="completed-check-icon" aria-label="Completed"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="12" fill="#22c55e"/><path d="M7 12.5l3 3 7-7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' :
                 (completedCount > 0 ? '<span class="pill-badge in-progress" style="font-size: 0.70rem; padding: 0.2rem 0.5rem;">In Progress</span>' : '')
             }
                 <span class="topic-arrow" style="font-size: 0.8rem;">❯</span>
